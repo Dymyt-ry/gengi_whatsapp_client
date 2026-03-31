@@ -38,7 +38,18 @@ router.post('/', function (req, res) {
       res.json({ sent: true, message: msg });
     })
     .catch(function (err) {
-      console.error('Error sending message:', err.message);
+      // DETAILNÍ VÝPIS CHYBY Z EVOLUTION API
+      console.error('\n--- EVOLUTION API ERROR ---');
+      if (err.response && err.response.data) {
+        console.error('Status:', err.response.status);
+        console.error('Detail chyby:', JSON.stringify(err.response.data, null, 2));
+      } else {
+        console.error('Obecná chyba:', err.message);
+      }
+      console.error('URL, kam se to poslalo:', url);
+      console.error('Chat ID (number):', chatId);
+      console.error('---------------------------\n');
+
       res.status(502).json({ error: 'Failed to send message via Evolution API' });
     });
 });
