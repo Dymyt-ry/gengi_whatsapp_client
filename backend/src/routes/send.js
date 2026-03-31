@@ -14,10 +14,16 @@ router.post('/', function (req, res) {
   var cleanChatId = chatId.trim();
   var cleanText = text.trim();
 
-  var number = cleanChatId
-    .replace('@g.us', '')
-    .replace('@s.whatsapp.net', '')
-    .replace('@lid', '');
+  if (cleanChatId.indexOf('@lid') !== -1) {
+    return res.status(400).json({ error: 'Cannot send to @lid contacts - phone number unknown' });
+  }
+
+  var number;
+  if (cleanChatId.indexOf('@g.us') !== -1) {
+    number = cleanChatId; // groups need full ID with @g.us suffix
+  } else {
+    number = cleanChatId.replace('@s.whatsapp.net', '');
+  }
 
   var url = process.env.EVO_API_URL + '/message/sendText/' + process.env.EVO_INSTANCE_NAME;
 
