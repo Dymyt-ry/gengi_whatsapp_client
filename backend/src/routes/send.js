@@ -13,10 +13,11 @@ router.post('/', function (req, res) {
 
   var url = process.env.EVO_API_URL + '/message/sendText/' + process.env.EVO_INSTANCE_NAME;
 
-  // ČISTÁ STRUKTURA - Zahozeno 'presence: "composing"', které blokovalo zprávy do skupin
+  // UNIVERZÁLNÍ STRUKTURA - Zbaští to staré i nové Evolution API
   axios.post(url, {
     number: chatId,
-    textMessage: {
+    text: text, // Vyžadováno pro Evolution API v2
+    textMessage: { // Vyžadováno pro Evolution API v1
       text: text
     }
   }, {
@@ -34,7 +35,6 @@ router.post('/', function (req, res) {
       res.json({ sent: true, message: msg });
     })
     .catch(function (err) {
-      // DETAILNÍ VÝPIS CHYBY Z EVOLUTION API
       console.error('\n--- EVOLUTION API ERROR ---');
       if (err.response && err.response.data) {
         console.error('Status:', err.response.status);
