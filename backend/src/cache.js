@@ -4,6 +4,7 @@
 var chats = {};    // chatId → {id, name, lastMessage, timestamp}
 var messages = {};  // chatId → [message, ...]
 var seenIds = {};   // messageId → true (dedup)
+var lidToPhone = {}; // @lid jid → resolved phone chatId (e.g. 123@s.whatsapp.net)
 
 function upsertMessage(msg) {
   if (seenIds[msg.id]) return;
@@ -61,9 +62,19 @@ function addSentMessage(chatId, text, messageId) {
   return msg;
 }
 
+function resolveLid(lid) {
+  return lidToPhone[lid] || null;
+}
+
+function storeLidMapping(lid, phoneChatId) {
+  lidToPhone[lid] = phoneChatId;
+}
+
 module.exports = {
   upsertMessage: upsertMessage,
   getChats: getChats,
   getMessages: getMessages,
-  addSentMessage: addSentMessage
+  addSentMessage: addSentMessage,
+  resolveLid: resolveLid,
+  storeLidMapping: storeLidMapping
 };
