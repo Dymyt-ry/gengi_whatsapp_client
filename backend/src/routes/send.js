@@ -11,20 +11,13 @@ router.post('/', function (req, res) {
     return res.status(400).json({ error: 'chatId and text are required' });
   }
 
-  // BEZPEČNOSTNÍ POJISTKA: Oříznutí neviditelných znaků (častý důvod 'not-acceptable')
   var cleanChatId = chatId.trim();
   var cleanText = text.trim();
 
   var url = process.env.EVO_API_URL + '/message/sendText/' + process.env.EVO_INSTANCE_NAME;
 
-  // OFICIÁLNÍ STRUKTURA PŘESNĚ PRO VERZI v1.8.2
   axios.post(url, {
     number: cleanChatId,
-    options: {
-      delay: 0,
-      presence: "composing",
-      linkPreview: false
-    },
     textMessage: {
       text: cleanText
     }
