@@ -14,29 +14,19 @@ router.post('/', function (req, res) {
   var cleanChatId = chatId.trim();
   var cleanText = text.trim();
 
-  if (cleanChatId.indexOf('@lid') !== -1) {
-    return res.status(400).json({ error: 'Cannot send to @lid contacts - phone number unknown' });
-  }
-
+  // Strip @s.whatsapp.net / @lid suffixes; keep @g.us for groups
   var number;
   if (cleanChatId.indexOf('@g.us') !== -1) {
-    number = cleanChatId; // groups need full ID with @g.us suffix
+    number = cleanChatId;
   } else {
-    number = cleanChatId.replace('@s.whatsapp.net', '');
+    number = cleanChatId.replace(/@s\.whatsapp\.net$/, '').replace(/@lid$/, '');
   }
 
   var url = process.env.EVO_API_URL + '/message/sendText/' + process.env.EVO_INSTANCE_NAME;
 
   axios.post(url, {
     number: number,
-    options: {
-      delay: 1200,
-      presence: "composing",
-      linkPreview: false
-    },
-    textMessage: {
-      text: cleanText
-    }
+    text: cleanText
   }, {
     headers: {
       'apikey': process.env.EVO_API_KEY,
