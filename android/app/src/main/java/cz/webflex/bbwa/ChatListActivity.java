@@ -6,6 +6,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -51,6 +53,14 @@ public class ChatListActivity extends Activity {
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        ApiClient.init(this);
+        if (!ApiClient.isConfigured(this)) {
+            startActivity(new Intent(this, SettingsActivity.class));
+            finish();
+            return;
+        }
+
         setContentView(R.layout.activity_chat_list);
 
         PollingService.schedulePolling(this);
@@ -74,8 +84,22 @@ public class ChatListActivity extends Activity {
 
     protected void onResume() {
         super.onResume();
+        ApiClient.init(this);
         polling = true;
         handler.postDelayed(pollRunnable, POLL_INTERVAL);
+    }
+
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_chat_list, menu);
+        return true;
+    }
+
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == R.id.action_settings) {
+            startActivity(new Intent(this, SettingsActivity.class));
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     protected void onPause() {
@@ -89,10 +113,13 @@ public class ChatListActivity extends Activity {
         Request request = new Request.Builder().url(url).get().build();
 
         ApiClient.getClient().newCall(request).enqueue(new Callback() {
-            public void onFailure(Call call, IOException e) {
+            public void onFailure(Call call, final IOException e) {
+                final String msg = e.getMessage();
                 handler.post(new Runnable() {
                     public void run() {
-                        Toast.makeText(ChatListActivity.this, "Failed to load chats", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(ChatListActivity.this,
+                                "Failed to load chats: " + (msg != null ? msg : e.getClass().getSimpleName()),
+                                Toast.LENGTH_LONG).show();
                     }
                 });
             }

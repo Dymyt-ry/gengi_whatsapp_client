@@ -13,11 +13,21 @@ router.post('/', function (req, res) {
 
   var url = process.env.EVO_API_URL + '/message/sendText/' + process.env.EVO_INSTANCE_NAME;
 
+  // OPRAVENÁ STRUKTURA PRO EVOLUTION API
   axios.post(url, {
     number: chatId,
-    text: text
+    options: {
+      delay: 0,
+      presence: "composing"
+    },
+    textMessage: {
+      text: text
+    }
   }, {
-    headers: { apikey: process.env.EVO_API_KEY }
+    headers: {
+      'apikey': process.env.EVO_API_KEY,
+      'Content-Type': 'application/json'
+    }
   })
     .then(function (response) {
       var messageId = null;
