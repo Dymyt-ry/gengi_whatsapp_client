@@ -13,13 +13,9 @@ router.post('/', function (req, res) {
 
   var url = process.env.EVO_API_URL + '/message/sendText/' + process.env.EVO_INSTANCE_NAME;
 
-  // OPRAVENÁ STRUKTURA PRO EVOLUTION API
+  // ČISTÁ STRUKTURA - Zahozeno 'presence: "composing"', které blokovalo zprávy do skupin
   axios.post(url, {
     number: chatId,
-    options: {
-      delay: 0,
-      presence: "composing"
-    },
     textMessage: {
       text: text
     }
