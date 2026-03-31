@@ -14,10 +14,20 @@ router.post('/', function (req, res) {
   var cleanChatId = chatId.trim();
   var cleanText = text.trim();
 
+  var number = cleanChatId
+    .replace('@g.us', '')
+    .replace('@s.whatsapp.net', '')
+    .replace('@lid', '');
+
   var url = process.env.EVO_API_URL + '/message/sendText/' + process.env.EVO_INSTANCE_NAME;
 
   axios.post(url, {
-    number: cleanChatId,
+    number: number,
+    options: {
+      delay: 1200,
+      presence: "composing",
+      linkPreview: false
+    },
     textMessage: {
       text: cleanText
     }
