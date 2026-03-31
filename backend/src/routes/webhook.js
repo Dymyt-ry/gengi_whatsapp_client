@@ -38,7 +38,7 @@ function resolveJid(jid, callback) {
     });
 }
 
-function processMessage(data) {
+function processMessage(data, rawBody) {
   if (!data || !data.key) return;
   var key = data.key;
   var rawJid = key.remoteJid;
@@ -71,6 +71,9 @@ function processMessage(data) {
   }
 
   if (rawJid && rawJid.indexOf('@lid') !== -1) {
+    console.log("=== INCOMING LID PAYLOAD DUMP ===");
+    console.log(JSON.stringify(rawBody, null, 2));
+    console.log("=================================");
     resolveJid(rawJid, function (err, resolved) {
       if (err || !resolved) {
         console.warn('Could not resolve @lid jid:', rawJid, err ? err.message : '');
@@ -88,7 +91,7 @@ router.post('/', function (req, res) {
   var event = req.body;
 
   if (event && event.event === 'messages.upsert') {
-    processMessage(event.data);
+    processMessage(event.data, event);
   }
 
   res.status(200).json({ received: true });
