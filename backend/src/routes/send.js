@@ -11,14 +11,22 @@ router.post('/', function (req, res) {
     return res.status(400).json({ error: 'chatId and text are required' });
   }
 
+  // BEZPEČNOSTNÍ POJISTKA: Oříznutí neviditelných znaků (častý důvod 'not-acceptable')
+  var cleanChatId = chatId.trim();
+  var cleanText = text.trim();
+
   var url = process.env.EVO_API_URL + '/message/sendText/' + process.env.EVO_INSTANCE_NAME;
 
-  // UNIVERZÁLNÍ STRUKTURA - Zbaští to staré i nové Evolution API
+  // OFICIÁLNÍ STRUKTURA PŘESNĚ PRO VERZI v1.8.2
   axios.post(url, {
-    number: chatId,
-    text: text, // Vyžadováno pro Evolution API v2
-    textMessage: { // Vyžadováno pro Evolution API v1
-      text: text
+    number: cleanChatId,
+    options: {
+      delay: 0,
+      presence: "composing",
+      linkPreview: false
+    },
+    textMessage: {
+      text: cleanText
     }
   }, {
     headers: {
@@ -31,7 +39,7 @@ router.post('/', function (req, res) {
       if (response.data && response.data.key) {
         messageId = response.data.key.id;
       }
-      var msg = cache.addSentMessage(chatId, text, messageId);
+      var msg = cache.addSentMessage(cleanChatId, cleanText, messageId);
       res.json({ sent: true, message: msg });
     })
     .catch(function (err) {
@@ -42,8 +50,9 @@ router.post('/', function (req, res) {
       } else {
         console.error('Obecná chyba:', err.message);
       }
-      console.error('URL, kam se to poslalo:', url);
-      console.error('Chat ID (number):', chatId);
+      console.error('URL:', url);
+      console.error('Chat ID:', cleanChatId);
+      console.error('Text:', cleanText);
       console.error('---------------------------\n');
 
       res.status(502).json({ error: 'Failed to send message via Evolution API' });
