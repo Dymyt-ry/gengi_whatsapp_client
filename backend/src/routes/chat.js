@@ -3,6 +3,7 @@ var cache = require('../cache');
 var router = express.Router();
 
 router.get('/:id', function (req, res) {
+  cache.clearUnread(req.params.id);
   res.json(cache.getMessages(req.params.id));
 });
 

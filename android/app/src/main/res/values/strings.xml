@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">BBWA</string>
+    <string name="app_name">BBWA by WebFlex</string>
+    <string name="about_text">BBWA Client v2.0\nPowered by WebFlex\nwebflex.cz</string>
     <string name="title_messages">Messages</string>
     <string name="hint_message">Type a message</string>
     <string name="send">Send</string>

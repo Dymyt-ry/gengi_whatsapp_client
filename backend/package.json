@@ -15,5 +15,8 @@
   },
   "devDependencies": {
     "nodemon": "^3.0.0"
-  }
+  },
+  "author": "WebFlex",
+  "license": "MIT",
+  "keywords": ["whatsapp", "blackberry", "evolution-api", "android", "bbwa", "webflex", "legacy-android"]
 }

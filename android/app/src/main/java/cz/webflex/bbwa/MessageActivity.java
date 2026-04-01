@@ -210,9 +210,18 @@ public class MessageActivity extends Activity {
             Message msg = messages.get(position);
             TextView textView = (TextView) convertView.findViewById(R.id.message_text);
             TextView senderView = (TextView) convertView.findViewById(R.id.message_sender);
+            TextView reactionView = (TextView) convertView.findViewById(R.id.message_reaction);
 
             textView.setText(msg.getText() != null ? msg.getText() : "");
             senderView.setText(msg.isFromMe() ? "You" : (msg.getSender() != null ? msg.getSender() : ""));
+
+            String reaction = msg.getReaction();
+            if (reaction != null && reaction.length() > 0) {
+                reactionView.setText(reaction);
+                reactionView.setVisibility(View.VISIBLE);
+            } else {
+                reactionView.setVisibility(View.GONE);
+            }
 
             return convertView;
         }

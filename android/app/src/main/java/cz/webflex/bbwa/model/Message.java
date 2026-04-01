@@ -9,6 +9,7 @@ public class Message {
     private String sender;
     private Boolean notify;
     private String notifyText;
+    private String reaction;
 
     public String getId() {
         return id;
@@ -64,5 +65,13 @@ public class Message {
 
     public void setNotifyText(String notifyText) {
         this.notifyText = notifyText;
+    }
+
+    public String getReaction() {
+        return reaction;
+    }
+
+    public void setReaction(String reaction) {
+        this.reaction = reaction;
     }
 }

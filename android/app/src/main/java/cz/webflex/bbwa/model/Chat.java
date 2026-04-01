@@ -6,6 +6,7 @@ public class Chat {
     private String name;
     private String lastMessage;
     private long timestamp;
+    private int unreadCount;
 
     public String getId() {
         return id;
@@ -37,5 +38,13 @@ public class Chat {
 
     public void setTimestamp(long timestamp) {
         this.timestamp = timestamp;
+    }
+
+    public int getUnreadCount() {
+        return unreadCount;
+    }
+
+    public void setUnreadCount(int unreadCount) {
+        this.unreadCount = unreadCount;
     }
 }

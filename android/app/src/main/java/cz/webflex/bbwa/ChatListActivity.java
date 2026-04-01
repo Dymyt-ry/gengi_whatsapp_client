@@ -98,6 +98,13 @@ public class ChatListActivity extends Activity {
         if (item.getItemId() == R.id.action_settings) {
             startActivity(new Intent(this, SettingsActivity.class));
             return true;
+        } else if (item.getItemId() == R.id.action_about) {
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("BBWA by WebFlex")
+                .setMessage("BBWA Client v2.0\nPowered by WebFlex\nwebflex.cz")
+                .setPositiveButton("OK", null)
+                .show();
+            return true;
         }
         return super.onOptionsItemSelected(item);
     }
@@ -168,9 +175,18 @@ public class ChatListActivity extends Activity {
             Chat chat = chats.get(position);
             TextView nameView = (TextView) convertView.findViewById(R.id.chat_name);
             TextView lastMsgView = (TextView) convertView.findViewById(R.id.chat_last_message);
+            TextView badgeView = (TextView) convertView.findViewById(R.id.chat_unread_badge);
 
             nameView.setText(chat.getName() != null ? chat.getName() : chat.getId());
             lastMsgView.setText(chat.getLastMessage() != null ? chat.getLastMessage() : "");
+
+            int unread = chat.getUnreadCount();
+            if (unread > 0) {
+                badgeView.setText(unread > 99 ? "99+" : String.valueOf(unread));
+                badgeView.setVisibility(View.VISIBLE);
+            } else {
+                badgeView.setVisibility(View.GONE);
+            }
 
             return convertView;
         }

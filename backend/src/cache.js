@@ -31,8 +31,13 @@ function upsertMessage(msg) {
     name: getChatName(msg, chats[chatId]),
     customName: (chats[chatId] && chats[chatId].customName) || null,
     lastMessage: msg.text || '',
-    timestamp: msg.timestamp
+    timestamp: msg.timestamp,
+    unreadCount: (chats[chatId] && chats[chatId].unreadCount) || 0
   };
+
+  if (!msg.fromMe) {
+    chats[chatId].unreadCount++;
+  }
 
   // Append to messages
   if (!messages[chatId]) {
@@ -102,6 +107,31 @@ function storeLidMapping(lid, phoneChatId) {
   lidToPhone[lid] = phoneChatId;
 }
 
+function getChatEntry(chatId) {
+  return chats[chatId] || null;
+}
+
+function updateGroupName(chatId, name) {
+  if (chats[chatId] && !chats[chatId].customName) {
+    chats[chatId].name = name;
+  }
+}
+
+function clearUnread(chatId) {
+  if (chats[chatId]) chats[chatId].unreadCount = 0;
+}
+
+function addReaction(chatId, targetMsgId, emoji) {
+  var msgs = messages[chatId];
+  if (!msgs) return;
+  for (var i = 0; i < msgs.length; i++) {
+    if (msgs[i].id === targetMsgId) {
+      msgs[i].reaction = emoji || null;
+      return;
+    }
+  }
+}
+
 module.exports = {
   upsertMessage: upsertMessage,
   getChats: getChats,
@@ -109,5 +139,9 @@ module.exports = {
   addSentMessage: addSentMessage,
   renameChat: renameChat,
   resolveLid: resolveLid,
-  storeLidMapping: storeLidMapping
+  storeLidMapping: storeLidMapping,
+  getChatEntry: getChatEntry,
+  updateGroupName: updateGroupName,
+  clearUnread: clearUnread,
+  addReaction: addReaction
 };
