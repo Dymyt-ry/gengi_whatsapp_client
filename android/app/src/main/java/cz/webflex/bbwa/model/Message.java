@@ -7,6 +7,8 @@ public class Message {
     private boolean fromMe;
     private long timestamp;
     private String sender;
+    private Boolean notify;
+    private String notifyText;
 
     public String getId() {
         return id;
@@ -46,5 +48,21 @@ public class Message {
 
     public void setSender(String sender) {
         this.sender = sender;
+    }
+
+    public Boolean getNotify() {
+        return notify;
+    }
+
+    public void setNotify(Boolean notify) {
+        this.notify = notify;
+    }
+
+    public String getNotifyText() {
+        return notifyText;
+    }
+
+    public void setNotifyText(String notifyText) {
+        this.notifyText = notifyText;
     }
 }

@@ -14,6 +14,7 @@ import android.util.Log;
 import cz.webflex.bbwa.MessageActivity;
 import cz.webflex.bbwa.api.ApiClient;
 import cz.webflex.bbwa.model.Chat;
+import cz.webflex.bbwa.model.Message;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
@@ -84,10 +85,44 @@ public class PollingService extends Service {
 
                     Long prev = lastTimestamps.get(chatId);
                     if (prev != null && ts > prev.longValue()) {
-                        showNotification(chatId, chat.getName(), chat.getLastMessage());
+                        checkAndNotify(chatId, chat.getName());
                     }
                     lastTimestamps.put(chatId, Long.valueOf(ts));
                 }
+            }
+        });
+    }
+
+    private void checkAndNotify(final String chatId, final String chatName) {
+        String url = ApiClient.getBaseUrl() + "/chat/" + chatId;
+        Request request = new Request.Builder().url(url).get().build();
+
+        ApiClient.getClient().newCall(request).enqueue(new Callback() {
+            public void onFailure(Call call, IOException e) {
+                Log.e(TAG, "checkAndNotify fetch failed: " + e.getMessage());
+            }
+
+            public void onResponse(Call call, Response response) throws IOException {
+                if (!response.isSuccessful()) {
+                    response.close();
+                    return;
+                }
+
+                String body = response.body().string();
+                Type listType = new TypeToken<List<Message>>() {}.getType();
+                List<Message> msgs = new Gson().fromJson(body, listType);
+
+                if (msgs == null || msgs.isEmpty()) return;
+
+                Message last = msgs.get(msgs.size() - 1);
+
+                // notify: true → show; notify: null (absent) → show (backward compat); notify: false → skip
+                Boolean notifyFlag = last.getNotify();
+                if (notifyFlag != null && !notifyFlag.booleanValue()) return;
+
+                String content = last.getNotifyText() != null ? last.getNotifyText()
+                        : (last.getText() != null ? last.getText() : "New message");
+                showNotification(chatId, chatName, content);
             }
         });
     }
