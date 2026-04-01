@@ -1,10 +1,23 @@
 // In-memory message store populated by webhook events.
 // No TTL — data lives until process restart (by design).
 
-var chats = {};    // chatId → {id, name, lastMessage, timestamp}
+var chats = {};    // chatId → {id, name, customName, lastMessage, timestamp}
 var messages = {};  // chatId → [message, ...]
 var seenIds = {};   // messageId → true (dedup)
 var lidToPhone = {}; // @lid jid → resolved phone chatId (e.g. 123@s.whatsapp.net)
+
+function getChatName(msg, existingChat) {
+  // customName always wins
+  if (existingChat && existingChat.customName) return existingChat.customName;
+  // Groups
+  if (msg.chatId.indexOf('@g.us') !== -1) {
+    return (existingChat && existingChat.name) || 'Skupina';
+  }
+  // Incoming message with pushName → use pushName (counterparty name)
+  if (!msg.fromMe && msg.pushName) return msg.pushName;
+  // Outgoing or no pushName → preserve existing name or fall back to chatId
+  return (existingChat && existingChat.name) || msg.chatId;
+}
 
 function upsertMessage(msg) {
   if (seenIds[msg.id]) return;
@@ -15,7 +28,8 @@ function upsertMessage(msg) {
   // Update chat entry
   chats[chatId] = {
     id: chatId,
-    name: msg.pushName || chats[chatId] && chats[chatId].name || chatId,
+    name: getChatName(msg, chats[chatId]),
+    customName: (chats[chatId] && chats[chatId].customName) || null,
     lastMessage: msg.text || '',
     timestamp: msg.timestamp
   };
@@ -24,13 +38,31 @@ function upsertMessage(msg) {
   if (!messages[chatId]) {
     messages[chatId] = [];
   }
+
+  var notifyText = null;
+  if (!msg.fromMe) {
+    var senderName = msg.pushName || msg.chatId;
+    notifyText = senderName + ': ' + (msg.text || '[Média/Jiná zpráva]');
+  }
+
   messages[chatId].push({
     id: msg.id,
     text: msg.text || '',
     fromMe: msg.fromMe,
     sender: msg.pushName || null,
-    timestamp: msg.timestamp
+    timestamp: msg.timestamp,
+    notify: !msg.fromMe,
+    notifyText: notifyText
   });
+}
+
+function renameChat(chatId, customName) {
+  if (!chats[chatId]) {
+    chats[chatId] = { id: chatId, name: customName, customName: customName, lastMessage: '', timestamp: 0 };
+  } else {
+    chats[chatId].customName = customName;
+    chats[chatId].name = customName;
+  }
 }
 
 function getChats() {
@@ -75,6 +107,7 @@ module.exports = {
   getChats: getChats,
   getMessages: getMessages,
   addSentMessage: addSentMessage,
+  renameChat: renameChat,
   resolveLid: resolveLid,
   storeLidMapping: storeLidMapping
 };
