@@ -22,6 +22,7 @@ import javax.net.ssl.X509TrustManager;
 
 import okhttp3.ConnectionSpec;
 import okhttp3.Interceptor;
+import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -62,11 +63,14 @@ public class ApiClient {
                     .addInterceptor(new Interceptor() {
                         public Response intercept(Chain chain) throws IOException {
                             Request original = chain.request();
-                            Request request = original.newBuilder()
-                                    .header("x-api-token", authToken)
-                                    .header("Content-Type", "application/json")
-                                    .build();
-                            return chain.proceed(request);
+                            Request.Builder builder = original.newBuilder()
+                                    .header("x-api-token", authToken);
+                            // Do NOT override Content-Type for multipart requests —
+                            // OkHttp sets the boundary automatically on MultipartBody.
+                            if (!(original.body() instanceof MultipartBody)) {
+                                builder.header("Content-Type", "application/json");
+                            }
+                            return chain.proceed(builder.build());
                         }
                     });
 

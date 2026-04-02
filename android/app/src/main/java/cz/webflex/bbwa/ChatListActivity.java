@@ -17,6 +17,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import cz.webflex.bbwa.api.ApiClient;
+import cz.webflex.bbwa.ContactResolver;
 import cz.webflex.bbwa.model.Chat;
 import cz.webflex.bbwa.service.PollingService;
 import com.google.gson.Gson;
@@ -72,9 +73,14 @@ public class ChatListActivity extends Activity {
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Chat chat = chats.get(position);
+                String resolvedName = chat.getName();
+                String number = ContactResolver.extractNumber(chat.getId());
+                String contactName = ContactResolver.getName(ChatListActivity.this, number);
+                if (contactName != null) resolvedName = contactName;
+
                 Intent intent = new Intent(ChatListActivity.this, MessageActivity.class);
                 intent.putExtra("chatId", chat.getId());
-                intent.putExtra("chatName", chat.getName());
+                intent.putExtra("chatName", resolvedName != null ? resolvedName : chat.getId());
                 startActivity(intent);
             }
         });
@@ -85,6 +91,13 @@ public class ChatListActivity extends Activity {
     protected void onResume() {
         super.onResume();
         ApiClient.init(this);
+
+        // Re-query contacts/aliases in case the user made changes while away.
+        ContactResolver.clearCache();
+        if (adapter != null) {
+            adapter.notifyDataSetChanged();
+        }
+
         polling = true;
         handler.postDelayed(pollRunnable, POLL_INTERVAL);
     }
@@ -177,7 +190,11 @@ public class ChatListActivity extends Activity {
             TextView lastMsgView = (TextView) convertView.findViewById(R.id.chat_last_message);
             TextView badgeView = (TextView) convertView.findViewById(R.id.chat_unread_badge);
 
-            nameView.setText(chat.getName() != null ? chat.getName() : chat.getId());
+            String number = ContactResolver.extractNumber(chat.getId());
+            String contactName = ContactResolver.getName(ChatListActivity.this, number);
+            String displayName = contactName != null ? contactName
+                    : (chat.getName() != null ? chat.getName() : chat.getId());
+            nameView.setText(displayName);
             lastMsgView.setText(chat.getLastMessage() != null ? chat.getLastMessage() : "");
 
             int unread = chat.getUnreadCount();

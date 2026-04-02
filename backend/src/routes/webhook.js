@@ -8,6 +8,25 @@ function stripSuffix(jid) {
   return jid.replace(/@s\.whatsapp\.net$/, '').replace(/@lid$/, '');
 }
 
+router.post('/', function (req, res) {
+  var event = req.body;
+
+  if (event && event.event === 'messages.upsert') {
+    var data = event.data;
+    if (data && data.message && data.message.reactionMessage) {
+      var rm = data.message.reactionMessage;
+      var targetId = rm.key && rm.key.id;
+      var chatId = rm.key && stripSuffix(rm.key.remoteJid);
+      var emoji = rm.text || '';
+      if (targetId && chatId) cache.addReaction(chatId, targetId, emoji);
+      return res.sendStatus(200);
+    }
+    processMessage(data);
+  }
+
+  res.status(200).json({ received: true });
+});
+
 function processMessage(data) {
   if (!data || !data.key) return;
   var key = data.key;
@@ -15,21 +34,19 @@ function processMessage(data) {
   var messageId = key.id;
   var pushName = data.pushName || null;
   var text = '';
-
-  // Detect reaction before text extraction
-  if (data.message && data.message.reactionMessage) {
-    var rm = data.message.reactionMessage;
-    var targetId = rm.key && rm.key.id;
-    var emoji = rm.text || '';
-    var rawJid = key.remoteJidAlt || key.remoteJid;
-    if (targetId) cache.addReaction(stripSuffix(rawJid), targetId, emoji);
-    return;
-  }
+  var type = 'text';
+  var mediaId = null;
 
   if (data.message) {
-    text = data.message.conversation
-      || (data.message.extendedTextMessage && data.message.extendedTextMessage.text)
-      || '';
+    if (data.message.imageMessage) {
+      type = 'image';
+      mediaId = messageId;
+      text = data.message.imageMessage.caption || '';
+    } else {
+      text = data.message.conversation
+        || (data.message.extendedTextMessage && data.message.extendedTextMessage.text)
+        || '';
+    }
   }
 
   var timestamp = data.messageTimestamp;
@@ -48,7 +65,9 @@ function processMessage(data) {
     fromMe: fromMe,
     pushName: pushName,
     text: text,
-    timestamp: timestamp
+    timestamp: timestamp,
+    type: type,
+    mediaId: mediaId
   });
 
   // Fetch group name if not yet known
@@ -64,15 +83,5 @@ function processMessage(data) {
     }
   }
 }
-
-router.post('/', function (req, res) {
-  var event = req.body;
-
-  if (event && event.event === 'messages.upsert') {
-    processMessage(event.data);
-  }
-
-  res.status(200).json({ received: true });
-});
 
 module.exports = router;

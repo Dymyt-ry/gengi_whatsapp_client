@@ -30,7 +30,7 @@ function upsertMessage(msg) {
     id: chatId,
     name: getChatName(msg, chats[chatId]),
     customName: (chats[chatId] && chats[chatId].customName) || null,
-    lastMessage: msg.text || '',
+    lastMessage: (msg.type === 'image') ? (msg.text || '[Image]') : (msg.text || ''),
     timestamp: msg.timestamp,
     unreadCount: (chats[chatId] && chats[chatId].unreadCount) || 0
   };
@@ -57,7 +57,9 @@ function upsertMessage(msg) {
     sender: msg.pushName || null,
     timestamp: msg.timestamp,
     notify: !msg.fromMe,
-    notifyText: notifyText
+    notifyText: notifyText,
+    type: msg.type || 'text',
+    mediaId: msg.mediaId || null
   });
 }
 
@@ -93,7 +95,9 @@ function addSentMessage(chatId, text, messageId) {
     fromMe: true,
     sender: null,
     timestamp: ts,
-    chatId: chatId
+    chatId: chatId,
+    type: 'text',
+    mediaId: null
   };
   upsertMessage(msg);
   return msg;
@@ -124,9 +128,9 @@ function clearUnread(chatId) {
 function addReaction(chatId, targetMsgId, emoji) {
   var msgs = messages[chatId];
   if (!msgs) return;
-  for (var i = 0; i < msgs.length; i++) {
+  for (var i = msgs.length - 1; i >= 0; i--) {
     if (msgs[i].id === targetMsgId) {
-      msgs[i].reaction = emoji || null;
+      msgs[i].reaction = (emoji && emoji.length > 0) ? emoji : null;
       return;
     }
   }

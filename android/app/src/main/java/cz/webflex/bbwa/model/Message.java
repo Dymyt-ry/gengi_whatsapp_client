@@ -10,6 +10,8 @@ public class Message {
     private Boolean notify;
     private String notifyText;
     private String reaction;
+    private String type;
+    private String mediaId;
 
     public String getId() {
         return id;
@@ -73,5 +75,21 @@ public class Message {
 
     public void setReaction(String reaction) {
         this.reaction = reaction;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public String getMediaId() {
+        return mediaId;
+    }
+
+    public void setMediaId(String mediaId) {
+        this.mediaId = mediaId;
     }
 }
