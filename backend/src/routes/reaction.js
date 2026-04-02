@@ -12,13 +12,18 @@ router.post('/', function (req, res) {
     return res.status(400).json({ error: 'chatId and messageId are required' });
   }
 
+  var remoteJid = chatId;
+  if (remoteJid.indexOf('@') === -1) {
+    remoteJid += (remoteJid.length > 15 ? '@g.us' : '@s.whatsapp.net');
+  }
+
   var url = process.env.EVO_API_URL
     + '/message/sendReaction/'
     + process.env.EVO_INSTANCE_NAME;
 
   axios.post(url, {
     key: {
-      remoteJid: chatId,
+      remoteJid: remoteJid,
       fromMe: originalFromMe,
       id: messageId
     },

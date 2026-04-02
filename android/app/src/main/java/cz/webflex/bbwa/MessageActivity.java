@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -69,6 +70,7 @@ public class MessageActivity extends Activity {
     private boolean polling = false;
     private long lastClickTime = 0;
     private int lastClickPosition = -1;
+    private String lastMessagesJson = "";
 
     private Runnable pollRunnable = new Runnable() {
         public void run() {
@@ -341,9 +343,24 @@ public class MessageActivity extends Activity {
     }
 
     private void sendReactionAsync(final Message msg, final String emoji) {
-        // Optimistic update
         msg.setReaction(emoji.length() > 0 ? emoji : null);
-        adapter.notifyDataSetChanged();
+        int start = listView.getFirstVisiblePosition();
+        int end   = listView.getLastVisiblePosition();
+        for (int i = start; i <= end; i++) {
+            if (((Message) adapter.getItem(i)).getId().equals(msg.getId())) {
+                View rowView = listView.getChildAt(i - start);
+                TextView reactionView = (TextView) rowView.findViewById(R.id.message_reaction);
+                if (reactionView != null) {
+                    if (msg.getReaction() != null) {
+                        reactionView.setText(msg.getReaction());
+                        reactionView.setVisibility(View.VISIBLE);
+                    } else {
+                        reactionView.setVisibility(View.GONE);
+                    }
+                }
+                break;
+            }
+        }
 
         String url = ApiClient.getBaseUrl() + "/api/messages/reaction";
         String escapedChatId = chatId.replace("\"", "\\\"");
@@ -382,17 +399,29 @@ public class MessageActivity extends Activity {
                     return;
                 }
 
-                String body = response.body().string();
+                final String responseBody = response.body().string();
+                response.close();
+                if (responseBody.equals(lastMessagesJson)) return;
+                lastMessagesJson = responseBody;
+
                 Type listType = new TypeToken<List<Message>>() {}.getType();
-                final List<Message> result = new Gson().fromJson(body, listType);
+                final List<Message> result = new Gson().fromJson(responseBody, listType);
 
                 handler.post(new Runnable() {
                     public void run() {
+                        int index = listView.getFirstVisiblePosition();
+                        View v = listView.getChildAt(0);
+                        int top = (v == null) ? 0 : (v.getTop() - listView.getPaddingTop());
+                        boolean isAtBottom = (listView.getLastVisiblePosition() >= adapter.getCount() - 2);
+
                         messages.clear();
                         messages.addAll(result);
                         adapter.notifyDataSetChanged();
-                        if (messages.size() > 0) {
-                            listView.setSelection(messages.size() - 1);
+
+                        if (isAtBottom) {
+                            listView.setSelection(adapter.getCount() - 1);
+                        } else {
+                            listView.setSelectionFromTop(index, top);
                         }
                     }
                 });
@@ -424,6 +453,50 @@ public class MessageActivity extends Activity {
                 });
             }
         });
+    }
+
+    public void showFullscreenImage(Message msg) {
+        android.app.Dialog dialog = new android.app.Dialog(
+                this, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
+        ImageView imageView = new ImageView(this);
+        imageView.setLayoutParams(new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        imageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        String mediaUrl = ApiClient.getBaseUrl() + "/api/media/" + msg.getMediaId();
+        ImageLoader.load(this, msg.getMediaId(), mediaUrl, imageView);
+        imageView.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) { ((android.app.Dialog) v.getTag()).dismiss(); }
+        });
+        imageView.setTag(dialog);
+        dialog.setContentView(imageView);
+        dialog.show();
+    }
+
+    public void downloadImageToGallery(final Message msg) {
+        new AsyncTask<Void, Void, String>() {
+            protected String doInBackground(Void... p) {
+                java.io.File f = new java.io.File(
+                        getCacheDir(), "img_" + msg.getMediaId() + ".jpg");
+                if (!f.exists()) return null;
+                Bitmap bmp = BitmapFactory.decodeFile(f.getAbsolutePath());
+                if (bmp == null) return null;
+                try {
+                    String path = android.provider.MediaStore.Images.Media.insertImage(
+                            getContentResolver(), bmp,
+                            "WhatsApp_" + msg.getMediaId(), "");
+                    bmp.recycle();
+                    return path;
+                } catch (Exception e) {
+                    bmp.recycle();
+                    return null;
+                }
+            }
+            protected void onPostExecute(String path) {
+                Toast.makeText(MessageActivity.this,
+                        path != null ? "Saved to Gallery" : "Failed to save",
+                        Toast.LENGTH_SHORT).show();
+            }
+        }.execute();
     }
 
     private class MessageAdapter extends BaseAdapter {
@@ -465,6 +538,18 @@ public class MessageActivity extends Activity {
                 imageView.setVisibility(View.VISIBLE);
                 String mediaUrl = ApiClient.getBaseUrl() + "/api/media/" + msg.getMediaId();
                 ImageLoader.load(MessageActivity.this, msg.getMediaId(), mediaUrl, imageView);
+                final Message finalMsg = msg;
+                imageView.setOnClickListener(new View.OnClickListener() {
+                    public void onClick(View v) {
+                        ((MessageActivity) MessageActivity.this).showFullscreenImage(finalMsg);
+                    }
+                });
+                imageView.setOnLongClickListener(new View.OnLongClickListener() {
+                    public boolean onLongClick(View v) {
+                        ((MessageActivity) MessageActivity.this).downloadImageToGallery(finalMsg);
+                        return true;
+                    }
+                });
                 if (msg.getText() != null && msg.getText().length() > 0) {
                     textView.setText(msg.getText());
                     textView.setVisibility(View.VISIBLE);
