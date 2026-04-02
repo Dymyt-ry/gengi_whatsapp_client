@@ -6,12 +6,16 @@ A thin native Android client for WhatsApp on legacy Android devices (API 18+), i
 
 ## Features
 
-- **LID resolution** — resolves `@lid` pseudonyms to real phone numbers via Evolution API v2
-- **Unread counters** — green badge on chat list, cleared on open
-- **Push notifications** — Android background polling with vibration
-- **Group support** — group names fetched from Evolution API
-- **AMOLED black UI** — Holo Dark theme, pure native Android (no WebView, no AppCompat)
-- **Settings screen** — configure backend URL and API token on first launch
+- **🖼️ Full Image Support** — send and receive image messages. Tap an image for a full-screen view, or long-press to save it to the Gallery. Heavy lifting (Base64 decoding/encoding) is offloaded to the backend to prevent OOM crashes on legacy devices.
+- **❤️ Two-Way Reactions** — double-tap any message to instantly send a ❤️, or long-press for a full emoji selection menu.
+- **⚡ Extreme Performance** — built for devices with 1-2GB RAM. Zero-allocation in-place UI updates, reverse-search cache lookups, and strict scroll-state retention.
+- **👤 Contact Aliases** — locally rename contacts directly from the chat menu.
+- **LID resolution** — resolves `@lid` pseudonyms to real phone numbers via Evolution API v2.
+- **Unread counters** — green badge on chat list, cleared on open.
+- **Push notifications** — Android background polling with vibration.
+- **Group support** — group names fetched from Evolution API.
+- **AMOLED black UI** — Holo Dark theme, pure native Android (no WebView, no AppCompat).
+- **Settings screen** — configure backend URL and API token on first launch.
 
 ---
 
@@ -30,11 +34,12 @@ WhatsApp ──► Evolution API v2 ──► POST /webhook
                                  Node.js backend (cache)
                                         │
                               GET /chats, /chat/:id
+                              GET /api/media/:id
                                         │
                           Android app (API 18, polling)
 ```
 
-- **Backend (`/backend`)**: Node.js/Express server. Webhook from Evolution API populates an in-memory message cache.
+- **Backend (`/backend`)**: Node.js/Express server. Webhook from Evolution API populates an in-memory message cache. Handles media formatting and payload translations to save client RAM.
 - **Android (`/android`)**: Native Java app targeting API 18. Pure ListView-based UI. Polls backend every 4 seconds.
 
 ---
@@ -67,8 +72,10 @@ Deploy the `backend/` directory as a Node.js app. Set the environment variables 
 curl -s -X POST http://YOUR_EVO_HOST:8081/webhook/set/YOUR_INSTANCE \
   -H "apikey: YOUR_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"url":"https://your-backend-url/webhook","webhook_by_events":false,"webhook_base64":false,"events":["MESSAGES_UPSERT"]}'
+  -d '{"webhook":{"url":"https://your-backend-url/webhook","enabled":true,"events":["MESSAGES_UPSERT"],"webhookByEvents":false,"webhookBase64":false}}'
 ```
+
+> ⚠️ Evolution API v2 uses a different webhook format than v1. Use the `webhook` object wrapper as shown above.
 
 ### Android APK
 ```bash
@@ -152,7 +159,10 @@ All endpoints except `/webhook` and `/status` require the `x-api-token` header.
 | GET | `/status` | No | Health check |
 | GET | `/chats` | Yes | List all conversations |
 | GET | `/chat/:id` | Yes | Get messages for a chat |
-| POST | `/send` | Yes | Send message `{ "chatId": "...", "text": "..." }` |
+| GET | `/api/media/:messageId` | Yes | Fetch raw image bytes from Evolution API |
+| POST | `/send` | Yes | Send text message `{ "chatId": "...", "text": "..." }` |
+| POST | `/api/messages/sendMedia` | Yes | Upload multipart/form-data image to WhatsApp |
+| POST | `/api/messages/reaction` | Yes | Send reaction `{ "chatId": "...", "messageId": "...", "emoji": "❤️" }` |
 | POST | `/webhook` | No | Evolution API webhook receiver |
 
 ---
@@ -191,10 +201,16 @@ Add DNS to your Docker daemon config (`/etc/docker/daemon.json`):
 ```
 Then restart Docker: `systemctl restart docker`
 
-### Evolution API can't reach n8n or other services
+### Evolution API can't reach other services
 Each Docker container needs to be on the same network. Connect containers manually:
 ```bash
 docker network connect coolify your-container-name
+```
+
+### Evolution API v2 webhook format
+v2 uses a different webhook registration format than v1. Use the `webhook` object wrapper:
+```bash
+-d '{"webhook":{"url":"...","enabled":true,"events":["MESSAGES_UPSERT"],"webhookByEvents":false,"webhookBase64":false}}'
 ```
 
 ---
@@ -229,4 +245,4 @@ cd android
 
 ## License
 
-MIT — Copyright (c) 2026 WebFlex.cz
+MIT — Copyright (c) 2026 BBWA Contributors
